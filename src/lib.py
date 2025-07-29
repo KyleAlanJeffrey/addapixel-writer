@@ -224,14 +224,14 @@ class AddAPixelClient:
         logger.info(f"Joined channel successfully!")
         return True
 
-    def _extract_color_palette(self, response):
-        """
-        Fetch the color palette from the server.
-        """
-        logger.info(f"Color palette response: {response}")
+    def get_color_id(self, str_color: str) -> Optional[int]:
+        for i, color in enumerate(self.colors):
+            if color == str_color:
+                return i
+        return None
 
-    def write_pixel(self, x: int, y: int, color: Colors):
-        self.ws.send(self.msg_maker.select_color_msg(color.value))
+    def write_pixel(self, x: int, y: int, color_id: int):
+        self.ws.send(self.msg_maker.select_color_msg(color_id))
         self.ws.send(self.msg_maker.select_pixel_msg(x, y))
         self.ws.send(self.msg_maker.save_pixel_msg())
         self.id += 3
