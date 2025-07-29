@@ -13,7 +13,7 @@ logger.remove()  # remove the old handler. Else, the old one will work along wit
 logger.add(sys.stderr, level="INFO")
 
 
-def image_to_color_array(image_path: str) -> np.ndarray:
+def image_to_color_array(image_path: str, client: AddAPixelClient) -> np.ndarray:
     """
     Convert an image to a binary array based on a threshold.
     Pixels above the threshold are set to 1 (white), below are set to 0 (black).
@@ -48,12 +48,12 @@ if __name__ == "__main__":
         ######################## LOAD IMAGE ########################
         logger.info("Loading Image into pixel array...")
         image_path = "earthly-delights.png"  # Replace with your image path
-        color_array = image_to_color_array(image_path)
+        color_array = image_to_color_array(image_path, client)
         logger.info(f"Color array shape: {color_array.shape}")
 
         input("Press Enter to start sending pixels...")
         start_offset = {"x": 1873, "y": 1348}
-        start_row = 600
+        start_row = 907
 
         logger.info("Sending Pixels starting at offset: {start_offset}")
         rows = start_row
