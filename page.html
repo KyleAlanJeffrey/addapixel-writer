@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" class="[scrollbar-gutter:stable]">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="csrf-token" content="NnUbY0AROhQIBg4FLV4zXD4RJjM3FhQLc1J08svGph77Ffp8IzNBmr9c">
+
+    <title data-default="Add A Pixel">Add A Pixel</title>
+
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" href="/images/favicon-d6125c2e6f47665b80ebb0e7f2555117.svg?vsn=d" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon-cfcb0e15a19c3e3efd11518449357890.png?vsn=d">
+
+    <link rel="preload" as="font" type="font/woff2" crossorigin="" href="https://addapixel.com/fonts/vt323/regular-df66394e25abcc87bf61f2aabe3c9494.woff2?vsn=d">
+
+    <meta name="description" content="A real time collaborative canvas where you can update one pixel at a time.">
+
+    <meta property="og:title" content="Add A Pixel">
+    <meta property="og:description" content="A real time collaborative canvas where you can update one pixel at a time.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://addapixel.com/">
+    <meta property="og:image" content="https://addapixel.com/images/add-a-pixel-og-fbd33f9f241a3f2b20866b99c0f050e4.png?vsn=d">
+    <meta property="og:image:secure_url" content="https://addapixel.com/images/add-a-pixel-og-fbd33f9f241a3f2b20866b99c0f050e4.png?vsn=d">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Blocky pixel-art logo reading ‘ADD A PIXEL’">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Add A Pixel">
+    <meta name="twitter:description" content="A real time collaborative canvas where you can update one pixel at a time.">
+    <meta name="twitter:image" content="https://addapixel.com/images/add-a-pixel-og-fbd33f9f241a3f2b20866b99c0f050e4.png?vsn=d">
+    <meta name="twitter:image:alt" content="Blocky pixel-art logo reading ‘ADD A PIXEL’">
+
+    <link phx-track-static rel="stylesheet" href="/assets/app-d66b8a37f953d50d4da432b3cb181d16.css?vsn=d">
+    <script defer phx-track-static type="text/javascript" src="/assets/app-7a7c16399b1d24d1a7fed3df20921d38.js?vsn=d">
+    </script>
+    <script defer data-domain="addapixel.com" src="https://plausible.io/js/script.js">
+    </script>
+  </head>
+  <body class="background">
+    <div id="phx-GFaS26cDfnJT9Heh" data-phx-main data-phx-session="SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdGYVMyNmNEZm5KVDlIZWh3B3Nlc3Npb250AAAAAHcEdmlld3cdRWxpeGlyLkFkZGFwaXhlbFdlYi5Cb2FyZExpdmV3CnBhcmVudF9waWR3A25pbHcGcm91dGVydxpFbGl4aXIuQWRkYXBpeGVsV2ViLlJvdXRlcncIcm9vdF9waWR3A25pbHcJcm9vdF92aWV3dx1FbGl4aXIuQWRkYXBpeGVsV2ViLkJvYXJkTGl2ZXcRbGl2ZV9zZXNzaW9uX25hbWV3B2RlZmF1bHRuBgBsH65TmAFiAAFRgA.DNY-MACcg2spfjGXaSDjNA1259mrExfxBz1Twz7DRf4" data-phx-static="SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdGYVMyNmNEZm5KVDlIZWh3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdqbgYAbB-uU5gBYgABUYA.kA1Nc6JZ_zpEbF6tow5iMnOjIFu9dP9xsCzZ2T1so4o"><div class="zoom-controls">
+  <button id="zoomIn" type="button" title="Zoom In">+</button>
+  <button id="zoomOut" type="button" title="Zoom Out">-</button>
+</div>
+
+<div id="reticle" phx-update="ignore" hidden></div>
+
+<div id="view-controls">
+  <div id="user-count">0</div>
+
+  <button class="view-btn" type="button" title="Toggle Pixel Controls" phx-click="toggle_view">
+
+      <svg viewBox="0 0 576 512">
+        <path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"></path>
+      </svg>
+
+  </button>
+</div>
+
+
+
+<canvas id="board" phx-hook="Board" data-board-width="4096" data-board-height="2304" width="4096px" height="2304px" phx-update="ignore" phx-page-loading>
+</canvas>
+
+<div id="color-picker" class="color-picker">
+  <section id="scroll-root" class="scroll-root">
+    <div phx-hook="PreserveScroll" phx-mounted="[[&quot;ignore_attrs&quot;,{&quot;attrs&quot;:[&quot;data-scroll-x&quot;]}]]" phx-update="ignore" id="scroller" class="scroll-viewport" data-scroll-x="0">
+      <ul id="scroll-content" class="scroll-content">
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="0" title="#000000" class="color-btn" style="background-color: #000000;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="1" title="#FFFFFF" class="color-btn" style="background-color: #FFFFFF;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="2" title="#C0CBDC" class="color-btn" style="background-color: #C0CBDC;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="3" title="#8B9BB4" class="color-btn" style="background-color: #8B9BB4;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="4" title="#5A6988" class="color-btn" style="background-color: #5A6988;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="5" title="#FF0044" class="color-btn" style="background-color: #FF0044;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="6" title="#FEE761" class="color-btn" style="background-color: #FEE761;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="7" title="#124E89" class="color-btn" style="background-color: #124E89;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="8" title="#3E2731" class="color-btn" style="background-color: #3E2731;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="9" title="#A22633" class="color-btn" style="background-color: #A22633;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="10" title="#E43B44" class="color-btn" style="background-color: #E43B44;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="11" title="#F6757A" class="color-btn" style="background-color: #F6757A;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="12" title="#733E39" class="color-btn" style="background-color: #733E39;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="13" title="#BE4A2F" class="color-btn" style="background-color: #BE4A2F;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="14" title="#F77622" class="color-btn" style="background-color: #F77622;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="15" title="#FEAE34" class="color-btn" style="background-color: #FEAE34;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="16" title="#FECC23" class="color-btn" style="background-color: #FECC23;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="17" title="#193C3E" class="color-btn" style="background-color: #193C3E;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="18" title="#265C42" class="color-btn" style="background-color: #265C42;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="19" title="#3E8948" class="color-btn" style="background-color: #3E8948;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="20" title="#63C74D" class="color-btn" style="background-color: #63C74D;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="21" title="#262B44" class="color-btn" style="background-color: #262B44;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="22" title="#3A4466" class="color-btn" style="background-color: #3A4466;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="23" title="#0099DB" class="color-btn" style="background-color: #0099DB;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="24" title="#2CE8F5" class="color-btn" style="background-color: #2CE8F5;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="25" title="#68386C" class="color-btn" style="background-color: #68386C;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="26" title="#B55088" class="color-btn" style="background-color: #B55088;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="27" title="#B86F50" class="color-btn" style="background-color: #B86F50;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="28" title="#C28569" class="color-btn" style="background-color: #C28569;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="29" title="#E4A672" class="color-btn" style="background-color: #E4A672;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="30" title="#E8B796" class="color-btn" style="background-color: #E8B796;">
+            </button>
+          </li>
+
+          <li class="color">
+            <button phx-click="select_color" phx-value-idx="31" title="#EAD4AA" class="color-btn" style="background-color: #EAD4AA;">
+            </button>
+          </li>
+
+      </ul>
+    </div>
+  </section>
+
+  <section class="pixel-form">
+    <div class="preview-box">
+      <div class="preview-color" style="background-color: #000000">
+        <p class="preview-color-hex" style="color: #ffffff">
+          #000000
+        </p>
+      </div>
+
+      <div class="preview-coordinates" style="background-color: #000000">
+        
+        
+      </div>
+    </div>
+
+    <div class="button-container">
+      <button class="submit-btn" type="button" phx-click="save" phx-disable-with="Saving..." disabled>
+
+          SELECT PIXEL
+
+      </button>
+    </div>
+  </section>
+</div></div>
+  </body>
+</html>
