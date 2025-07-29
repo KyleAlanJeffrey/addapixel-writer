@@ -41,6 +41,44 @@ class LiveViewTokens:
         )
 
 
+@dataclass
+class ResponseMessage:
+    _na: int
+    id: int
+    topic: str
+    type: str
+    status: str
+    payload: dict
+    success: bool = True
+
+    @classmethod
+    def pack(cls, response: List) -> "ResponseMessage":
+        """
+        Parse a response list into a ResponseMessage object.
+        """
+        if len(response) < 5:
+            raise ValueError("Invalid response format")
+        return ResponseMessage(
+            _na=int(response[0]),
+            id=int(response[1]),
+            type=response[3],
+            topic=response[2],
+            status=response[4]["status"],
+            payload=response[4]["response"] if "response" in response[4] else {},
+        )
+
+    def __repr__(self):
+        return (
+            f"--- ResponseMessage ---\n"
+            f"_na -> {self._na}\n"
+            f"id -> {self.id}\n"
+            f"topic -> {self.topic}\n"
+            f"status -> {self.status}\n"
+            f"payload -> {self.payload}\n"
+            "-----------------------"
+        )
+
+
 class MessageMaker:
     def __init__(self, id: int, tokens: LiveViewTokens):
         self.id = id
@@ -106,12 +144,16 @@ class AddAPixelClient:
         self.id = 4  # Always starts at 4
         self.tokens: LiveViewTokens = None
         self.cookies: str = None
+        self.colors: List[str] = []
         self.connection_str: str = None
         self.ws: WebSocket = None
         self.msg_maker = None
         self.board_size = {"x": board_width, "y": board_height}
+        logger.info(
+            f"Initialized AddAPixelClient with: \nURL -> {self.url}, \nBoard Size -> {self.board_size}"
+        )
 
-    def _extract_liveview_tokens(self) -> LiveViewTokens:
+    def _extract_liveview_tokens(self):
         # Fetch the page
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
@@ -146,18 +188,21 @@ class AddAPixelClient:
         else:
             topic = session = static = None
 
-        return (
-            LiveViewTokens(
-                csrf_token=csrf_token, topic=topic, session=session, static=static
-            ),
-            cookie_header,
+        color_elements = soup.select("li.color button[title]")
+        colors = [btn["title"] for btn in color_elements]
+
+        self.tokens = LiveViewTokens(
+            csrf_token=csrf_token, topic=topic, session=session, static=static
         )
+        self.cookies = cookie_header
+        self.colors = colors
 
     def connect(self):
-        self.tokens, self.cookies = self._extract_liveview_tokens()
+        self._extract_liveview_tokens()
 
         logger.debug(self.tokens)
         logger.debug(f"Cookies: {self.cookies}")
+        logger.debug(f"Colors: {self.colors}")
 
         self.msg_maker = MessageMaker(self.id, self.tokens)
 
@@ -172,8 +217,18 @@ class AddAPixelClient:
         )
         logger.info("Connected to WebSocket!")
 
-    def join_channel(self):
-        self.ws.send(self.msg_maker.join_msg())
+    def join_channel(self) -> bool:
+        response = self._send_and_receive(self.msg_maker.join_msg())
+        if response.status != "ok":
+            logger.error("Failed to join channel or get response status.")
+        logger.info(f"Joined channel successfully!")
+        return True
+
+    def _extract_color_palette(self, response):
+        """
+        Fetch the color palette from the server.
+        """
+        logger.info(f"Color palette response: {response}")
 
     def write_pixel(self, x: int, y: int, color: Colors):
         self.ws.send(self.msg_maker.select_color_msg(color.value))
@@ -183,6 +238,7 @@ class AddAPixelClient:
 
     def heartbeat(self):
         self.ws.send(self.msg_maker.heartbeat_msg())
+        self.get_response()
         self.id += 1
 
     def get_response(self) -> List:
@@ -197,6 +253,14 @@ class AddAPixelClient:
             logger.error(f"Error parsing response: {e}")
             return None
         return status
+
+    def _send_and_receive(self, message: str) -> ResponseMessage:
+        """
+        Send a message and wait for a response.
+        """
+        self.ws.send(message)
+        response = self.ws.recv()
+        return ResponseMessage.pack(json.loads(response))
 
     # Context manager for automatic connection handling
     def __enter__(self):

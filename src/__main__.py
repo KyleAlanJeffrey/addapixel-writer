@@ -32,33 +32,32 @@ if __name__ == "__main__":
     addapixel_client = AddAPixelClient(
         STARTING_URL, BOARD_WIDTH, BOARD_HEIGHT
     )  # Create Client
+
+    # Testing connection
     with addapixel_client as client:
-        client.join_channel()
-        response = client.get_response_status()
-        if response is None:
-            logger.error("Failed to join channel or get response status.")
+        success = client.join_channel()
+        logger.info(f"Color palette: {client.colors}")
+        if not success:
             sys.exit(1)
-        logger.info(f"Joined channel w/ response: {response}")
         client.heartbeat()
 
-    input("Press Enter to start sending pixels...")
-
-    start_offset = {"x": 3000, "y": 0}
-    logger.info("Sending Pixels starting at offset: {start_offset}")
-    with addapixel_client as client:
-        for y in range(binary_array.shape[0]):
-            for x in range(binary_array.shape[1]):
-                if binary_array[y, x] == 1:
-                    id = client.write_pixel(
-                        start_offset["x"] + x,
-                        start_offset["y"] + y,
-                        Colors.WHITE,
-                        id,
-                    )
-                else:
-                    id = client.write_pixel(
-                        start_offset["x"] + x,
-                        start_offset["y"] + y,
-                        Colors.BLACK,
-                        id,
-                    )
+    # input("Press Enter to start sending pixels...")
+    # start_offset = {"x": 3000, "y": 0}
+    # logger.info("Sending Pixels starting at offset: {start_offset}")
+    # with addapixel_client as client:
+    #     for y in range(binary_array.shape[0]):
+    #         for x in range(binary_array.shape[1]):
+    #             if binary_array[y, x] == 1:
+    #                 id = client.write_pixel(
+    #                     start_offset["x"] + x,
+    #                     start_offset["y"] + y,
+    #                     Colors.WHITE,
+    #                     id,
+    #                 )
+    #             else:
+    #                 id = client.write_pixel(
+    #                     start_offset["x"] + x,
+    #                     start_offset["y"] + y,
+    #                     Colors.BLACK,
+    #                     id,
+    #                 )
