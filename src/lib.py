@@ -258,6 +258,11 @@ class AddAPixelClient:
         return True
 
     def write_pixel(self, x: int, y: int, color_id: int):
+        if x < 0 or x >= self.board_size["x"] or y < 0 or y >= self.board_size["y"]:
+            logger.warning(
+                f"Pixel coordinates ({x}, {y}) are out of bounds for board size {self.board_size}."
+            )
+            return
         self._send_and_receive(self.msg_maker.select_color_msg(color_id))
         self._send_and_receive(self.msg_maker.select_pixel_msg(x, y))
         self._send_and_receive(self.msg_maker.save_pixel_msg())
@@ -292,7 +297,7 @@ class AddAPixelClient:
     def _heartbeat_loop(self):
         while not self._stop_heartbeat.is_set():
             try:
-                logger.info("Sending heartbeat...")
+                logger.debug("Sending heartbeat...")
                 self.heartbeat()
             except Exception as e:
                 logger.error(f"Heartbeat failed: {e}")

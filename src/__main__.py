@@ -58,36 +58,32 @@ def send_pixels_thread(
     url: str,
 ):
     with AddAPixelClient(url, BOARD_WIDTH, BOARD_HEIGHT) as client:
-        success = client.join_channel()
-        if not success:
-            logger.error(f"Thread for rows {start_y}–{end_y}: Could not join channel.")
-            return
-        client.heartbeat()
-
         total_pixels = (end_y - start_y) * color_array.shape[1]
         with tqdm(total=total_pixels) as pbar:
             for y in range(start_y, end_y):
+                if y < 0 or y >= color_array.shape[0]:
+                    continue
                 for x in range(color_array.shape[1]):
+                    if x < 0 or x >= color_array.shape[1]:
+                        continue
                     color_id = color_array[y, x]
                     if color_id != TRANSPARENT_COLOR_ID:
                         client.write_pixel(
                             x + start_offset["x"], y + start_offset["y"], color_id
                         )
-                        client.get_response()  # Process every response
-
+                        time.sleep(sleep_per_pixel_s)
                     pbar.update(1)
-                    time.sleep(sleep_per_pixel_s)
                 time.sleep(sleep_per_row_s)
 
 
 if __name__ == "__main__":
     ## CONFIGS
-    start_offset = {"x": 2817, "y": 2199}
+    start_offset = {"x": 3344, "y": -37}
     start_row = 0
-    image_path = "puppy.png"  # Replace with your image path
-    n_threads = 5
-    sleep_per_px = 0.2
-    sleep_per_row = 2
+    image_path = "what-u-got.png"  # Replace with your image path
+    n_threads = 20
+    sleep_per_px = 0.1
+    sleep_per_row = 1
 
     logger.info("Processing image to send...")
     color_palette = ColorPalette.pack(STARTING_URL)
@@ -98,13 +94,14 @@ if __name__ == "__main__":
 
     threads = []
     n_rows = color_array.shape[0] // n_threads
-    total_pixels = color_array.shape[0] * color_array.shape[1]
+    total_non_trans_pixels = np.count_nonzero(color_array != TRANSPARENT_COLOR_ID)
     total_seconds = (
-        (((total_pixels * sleep_per_px)) + (n_rows * sleep_per_row)) / n_threads
+        (((total_non_trans_pixels * sleep_per_px)) + (n_rows * sleep_per_row))
+        / n_threads
     ) * 1.1
 
     logger.warning(
-        f"Do you want to send {total_pixels} pixels w/ {n_threads} threads. This will take approx {total_seconds/60:.1f} mins"
+        f"Do you want to send {total_non_trans_pixels} pixels w/ {n_threads} threads. This will take approx {total_seconds/60:.1f} mins"
     )
     input(f"Press Enter to continue...")
 
@@ -142,10 +139,6 @@ if __name__ == "__main__":
                 t.join(timeout=1)
         logger.info("All threads have been closed.")
         logger.info("Exiting program.")
-        sys.exit(1)
-
-    logger.info("Threads finished or timed out.")
-    sys.exit(0)
 
     # addapixel_client = AddAPixelClient(
     #     STARTING_URL, BOARD_WIDTH, BOARD_HEIGHT
