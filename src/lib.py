@@ -16,11 +16,6 @@ BASE_URL = "addapixel.fly.dev/live/websocket"
 CONNECTION_STRING = "wss://addapixel.fly.dev/live/websocket?_csrf_token={}&_mounts=0&_mount_attempts=0&_live_referer=undefined&vsn=2.0.0"
 
 
-class Colors(Enum):
-    BLACK = 0
-    WHITE = 1
-
-
 @dataclass
 class LiveViewTokens:
     csrf_token: str
@@ -77,6 +72,37 @@ class ResponseMessage:
             f"payload -> {self.payload}\n"
             "-----------------------"
         )
+
+
+@dataclass
+class ColorPalette:
+    colors: List[str]
+
+    @classmethod
+    def pack(cls, url: str) -> "ColorPalette":
+        """
+        Fetch the color palette from the given URL and return a ColorPalette object.
+        """
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Cache-Control": "no-cache",
+        }
+        response = requests.get(url, headers=headers)
+        html = response.text
+        soup = BeautifulSoup(html, "html.parser")
+        color_elements = soup.select("li.color button[title]")
+        return cls(colors=[btn["title"] for btn in color_elements])
+
+    def get_color_id_from_hexcode(self, str_color: str) -> Optional[int]:
+        for i, color in enumerate(self.colors):
+            if color == str_color:
+                return i
+        return None
+
+    def __repr__(self):
+        return f"ColorPalette(colors={self.colors})"
 
 
 class MessageMaker:
@@ -149,7 +175,7 @@ class AddAPixelClient:
         self.ws: WebSocket = None
         self.msg_maker = None
         self.board_size = {"x": board_width, "y": board_height}
-        logger.info(
+        logger.debug(
             f"Initialized AddAPixelClient with: \nURL -> {self.url}, \nBoard Size -> {self.board_size}"
         )
 
@@ -215,20 +241,14 @@ class AddAPixelClient:
                 "Origin: https://addapixel.fly.dev",
             ],
         )
-        logger.info("Connected to WebSocket!")
+        logger.debug("Connected to WebSocket!")
 
     def join_channel(self) -> bool:
         response = self._send_and_receive(self.msg_maker.join_msg())
         if response.status != "ok":
             logger.error("Failed to join channel or get response status.")
-        logger.info(f"Joined channel successfully!")
+        logger.debug(f"Joined channel successfully!")
         return True
-
-    def get_color_id(self, str_color: str) -> Optional[int]:
-        for i, color in enumerate(self.colors):
-            if color == str_color:
-                return i
-        return None
 
     def write_pixel(self, x: int, y: int, color_id: int):
         self.ws.send(self.msg_maker.select_color_msg(color_id))
@@ -269,4 +289,4 @@ class AddAPixelClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.ws.close()
-        logger.info("WebSocket connection closed.")
+        logger.debug("WebSocket connection closed.")
