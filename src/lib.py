@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import sys
+import threading
 from typing import List, Optional
 from websocket import WebSocket, create_connection
 from loguru import logger
@@ -14,6 +15,8 @@ logger.add(sys.stderr, level="INFO")
 STARTING_URL = "https://addapixel.fly.dev/#0:0:1.0"
 BASE_URL = "addapixel.fly.dev/live/websocket"
 CONNECTION_STRING = "wss://addapixel.fly.dev/live/websocket?_csrf_token={}&_mounts=0&_mount_attempts=0&_live_referer=undefined&vsn=2.0.0"
+
+TRANSPARENT_COLOR_ID = -1
 
 
 @dataclass
@@ -77,6 +80,7 @@ class ResponseMessage:
 @dataclass
 class ColorPalette:
     colors: List[str]
+    transparent_color = "#FF0000"
 
     @classmethod
     def pack(cls, url: str) -> "ColorPalette":
@@ -96,6 +100,9 @@ class ColorPalette:
         return cls(colors=[btn["title"] for btn in color_elements])
 
     def get_color_id_from_hexcode(self, str_color: str) -> Optional[int]:
+        if str_color == self.transparent_color:
+            return TRANSPARENT_COLOR_ID
+
         for i, color in enumerate(self.colors):
             if color == str_color:
                 return i
@@ -251,42 +258,60 @@ class AddAPixelClient:
         return True
 
     def write_pixel(self, x: int, y: int, color_id: int):
-        self.ws.send(self.msg_maker.select_color_msg(color_id))
-        self.ws.send(self.msg_maker.select_pixel_msg(x, y))
-        self.ws.send(self.msg_maker.save_pixel_msg())
-        self.id += 3
+        self._send_and_receive(self.msg_maker.select_color_msg(color_id))
+        self._send_and_receive(self.msg_maker.select_pixel_msg(x, y))
+        self._send_and_receive(self.msg_maker.save_pixel_msg())
 
     def heartbeat(self):
         self.ws.send(self.msg_maker.heartbeat_msg())
         self.get_response()
         self.id += 1
 
-    def get_response(self) -> List:
-        response = self.ws.recv()
-        return json.loads(response)
-
-    def get_response_status(self) -> Optional[str]:
+    def get_response(self) -> Optional[ResponseMessage]:
         response = self.ws.recv()
         try:
-            status = json.loads(response)[4]["status"]
+            return ResponseMessage.pack(json.loads(response))
         except Exception as e:
-            logger.error(f"Error parsing response: {e}")
+            # Silently ignore malformed responses
             return None
-        return status
 
     def _send_and_receive(self, message: str) -> ResponseMessage:
         """
         Send a message and wait for a response.
         """
-        self.ws.send(message)
-        response = self.ws.recv()
-        return ResponseMessage.pack(json.loads(response))
+        try:
+            self.ws.send(message)
+            self.id += 1
+            return self.get_response()
+        except BrokenPipeError as e:
+            logger.error(f"WebSocket connection broken: {e}")
+            logger.warning("Attempting to reconnect...")
+            self.connect()
+        return None
+
+    def _heartbeat_loop(self):
+        while not self._stop_heartbeat.is_set():
+            try:
+                logger.info("Sending heartbeat...")
+                self.heartbeat()
+            except Exception as e:
+                logger.error(f"Heartbeat failed: {e}")
+            self._stop_heartbeat.wait(30)  # Wait for 30 seconds or until stopped
 
     # Context manager for automatic connection handling
+    # Heartbeat every 30 sec while in context
     def __enter__(self):
+        self._stop_heartbeat = threading.Event()
+        self._heartbeat_thread = threading.Thread(
+            target=self._heartbeat_loop, daemon=True
+        )
         self.connect()
+        self._heartbeat_thread.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self._stop_heartbeat.set()
+        if self._heartbeat_thread.is_alive():
+            self._heartbeat_thread.join()
         self.ws.close()
         logger.debug("WebSocket connection closed.")

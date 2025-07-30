@@ -5,7 +5,7 @@ from typing import Dict
 from loguru import logger
 from PIL import Image
 import numpy as np
-from .lib import AddAPixelClient, ColorPalette
+from .lib import TRANSPARENT_COLOR_ID, AddAPixelClient, ColorPalette
 from tqdm import tqdm
 
 STARTING_URL = "https://addapixel.fly.dev/#0:0:1.0"
@@ -23,7 +23,7 @@ def image_to_color_array(image_path: str, color_palette: ColorPalette) -> np.nda
     """
     img = Image.open(image_path)
     # For every pixel lookup color id and put into array at that index
-    unmatched_pixels = 0
+    unmatched_pixels, trans_pixels = 0, 0
     total_pixels = img.width * img.height
     color_array = np.zeros((img.height, img.width), dtype=int)
     for y in range(img.height):
@@ -31,14 +31,20 @@ def image_to_color_array(image_path: str, color_palette: ColorPalette) -> np.nda
             pixel = img.getpixel((x, y))
             hex_color = "#{:02X}{:02X}{:02X}".format(*pixel[:3])  # uppercase hex
             color_id = color_palette.get_color_id_from_hexcode(hex_color)
+            if color_id == TRANSPARENT_COLOR_ID:
+                trans_pixels += 1
             if color_id is not None:
                 color_array[y, x] = color_id
             else:
                 unmatched_pixels += 1
                 color_array[y, x] = 0
     logger.warning(
-        f"{unmatched_pixels}/{total_pixels} - {unmatched_pixels / total_pixels * 100:.2f}% pixels couldn't be matched to the palette."
+        f"{unmatched_pixels}/{total_pixels} | {unmatched_pixels / total_pixels * 100:.2f}% pixels couldn't be matched to the palette."
     )
+    logger.warning(
+        f"{trans_pixels}/{total_pixels} | {trans_pixels / total_pixels * 100:.2f}% of pixels are transparent..."
+    )
+
     return color_array
 
 
@@ -63,24 +69,25 @@ def send_pixels_thread(
             for y in range(start_y, end_y):
                 for x in range(color_array.shape[1]):
                     color_id = color_array[y, x]
-                    client.write_pixel(
-                        x + start_offset["x"], y + start_offset["y"], color_id
-                    )
+                    if color_id != TRANSPARENT_COLOR_ID:
+                        client.write_pixel(
+                            x + start_offset["x"], y + start_offset["y"], color_id
+                        )
+                        client.get_response()  # Process every response
+
                     pbar.update(1)
-                    client.get_response()  # Process every response
                     time.sleep(sleep_per_pixel_s)
                 time.sleep(sleep_per_row_s)
-                client.heartbeat()  # Heartbeat after every row
 
 
 if __name__ == "__main__":
     ## CONFIGS
-    start_offset = {"x": 2850, "y": 1668}
+    start_offset = {"x": 2817, "y": 2199}
     start_row = 0
-    image_path = "hasselhof.png"  # Replace with your image path
-    n_threads = 100
-    sleep_per_px = 0.01
-    sleep_per_row = 1
+    image_path = "puppy.png"  # Replace with your image path
+    n_threads = 5
+    sleep_per_px = 0.2
+    sleep_per_row = 2
 
     logger.info("Processing image to send...")
     color_palette = ColorPalette.pack(STARTING_URL)
@@ -123,7 +130,7 @@ if __name__ == "__main__":
     # Wait for all threads to finish
     try:
         for t in threads:
-            t.join(timeout=1)
+            t.join()
     except KeyboardInterrupt:
         logger.error("Process interrupted by user.")
         # Close all threads gracefully
