@@ -8,12 +8,13 @@ import numpy as np
 from .lib import TRANSPARENT_COLOR_ID, AddAPixelClient, ColorPalette
 from tqdm import tqdm
 
+import argparse
+
 STARTING_URL = "https://addapixel.fly.dev/#0:0:1.0"
 BOARD_WIDTH = 4095
 BOARD_HEIGHT = 2303
 
 logger.remove()  # remove the old handler. Else, the old one will work along with the new one you've added below'
-logger.add(sys.stderr, level="INFO")
 
 
 def image_to_color_array(image_path: str, color_palette: ColorPalette) -> np.ndarray:
@@ -82,13 +83,50 @@ def send_pixels_thread(
 
 
 if __name__ == "__main__":
-    ## CONFIGS
-    start_offset = {"x": 3344, "y": -37}
-    start_row = 0
-    image_path = "what-u-got.png"  # Replace with your image path
-    n_threads = 10
-    sleep_per_px = 0
-    sleep_per_row = 1
+    parser = argparse.ArgumentParser(
+        description="Send pixels from image to AddAPixel board."
+    )
+    parser.add_argument(
+        "--image", type=str, default="hasselhof.png", help="Path to the image file."
+    )
+    parser.add_argument(
+        "--start-x", type=int, default=3344, help="Starting X offset on the board."
+    )
+    parser.add_argument(
+        "--start-y", type=int, default=-37, help="Starting Y offset on the board."
+    )
+    parser.add_argument(
+        "--threads", type=int, default=3, help="Number of concurrent pixel writers."
+    )
+    parser.add_argument(
+        "--sleep-per-px",
+        type=float,
+        default=0,
+        help="Sleep duration per pixel in seconds.",
+    )
+    parser.add_argument(
+        "--sleep-per-row",
+        type=float,
+        default=1,
+        help="Sleep duration per row in seconds.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging.",
+    )
+    args = parser.parse_args()
+    if args.verbose:
+        logger.add(sys.stderr, level="DEBUG")
+    else:
+        logger.add(sys.stderr, level="INFO")
+
+    start_offset = {"x": args.start_x, "y": args.start_y}
+    image_path = args.image
+    n_threads = args.threads
+    sleep_per_px = args.sleep_per_px
+    sleep_per_row = args.sleep_per_row
 
     logger.info("Processing image to send...")
     color_palette = ColorPalette.pack(STARTING_URL)
@@ -146,32 +184,3 @@ if __name__ == "__main__":
                 t.join(timeout=1)
         logger.info("All threads have been closed.")
         logger.info("Exiting program.")
-
-    # addapixel_client = AddAPixelClient(
-    #     STARTING_URL, BOARD_WIDTH, BOARD_HEIGHT
-    # )  # Create Client
-
-    # # Testing connection
-    # with addapixel_client as client:
-    #     success = client.join_channel()
-    #     if not success:
-    #         sys.exit(1)
-    #     client.heartbeat()
-
-    #     input("Press Enter to start sending pixels...")
-
-    #     logger.info("Sending Pixels starting at offset: {start_offset}")
-    #     rows = start_row
-    #     for y in range(start_row, color_array.shape[0]):
-    #         for x in range(color_array.shape[1]):
-    #             color_id = color_array[y, x]
-    #             client.write_pixel(
-    #                 x + start_offset["x"], y + start_offset["y"], color_id
-    #             )
-    #         logger.info(f"Row {y + 1}/{color_array.shape[0]} sent.")
-    #         rows += 1
-    #         if rows % 50 == 0:  # Log every 50 rows
-    #             logger.info(f"Sent {rows} rows so far.")
-    #             client.heartbeat()
-    #             time.sleep(1)  # Sleep to avoid overwhelming the server
-    #         time.sleep(0.1)  # Sleep to avoid overwhelming the server

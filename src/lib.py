@@ -9,8 +9,8 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
-logger.remove()  # remove the old handler. Else, the old one will work along with the new one you've added below'
-logger.add(sys.stderr, level="INFO")
+# logger.remove()  # remove the old handler. Else, the old one will work along with the new one you've added below'
+# logger.add(sys.stderr, level="DEBUG")
 
 STARTING_URL = "https://addapixel.fly.dev/#0:0:1.0"
 BASE_URL = "addapixel.fly.dev/live/websocket"
@@ -259,6 +259,7 @@ class AddAPixelClient:
                 "Origin: https://addapixel.fly.dev",
             ],
         )
+        self.join_channel()
         self._stop_heartbeat = threading.Event()
         self._heartbeat_thread = threading.Thread(
             target=self._heartbeat_loop, daemon=True
