@@ -29,3 +29,6 @@ Here's an example command:
 ```python -m src --image assets/hasselhof.png --start-x 0 --start-y 0 --threads 4 --sleep-per-px 0.01 --sleep-per-row 1```
 
 The image MUST map to the color pallete used by the website. There's a function in the lib to grab that color pallete and convert the image to a 2d array of color id's.
+
+#TODO
+- [] Progress bars arent actually correct. They don't account for skipped transparent pixels. 
