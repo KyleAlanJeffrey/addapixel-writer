@@ -230,6 +230,17 @@ class AddAPixelClient:
         self.cookies = cookie_header
         self.colors = colors
 
+    def reconnect(self):
+        self.disconnect()
+        self.connect()
+
+    def disconnect(self):
+        self._stop_heartbeat.set()
+        if self._heartbeat_thread.is_alive():
+            self._heartbeat_thread.join()
+        self.ws.close()
+        logger.debug("WebSocket connection closed.")
+
     def connect(self):
         self._extract_liveview_tokens()
 
@@ -248,6 +259,12 @@ class AddAPixelClient:
                 "Origin: https://addapixel.fly.dev",
             ],
         )
+        self._stop_heartbeat = threading.Event()
+        self._heartbeat_thread = threading.Thread(
+            target=self._heartbeat_loop, daemon=True
+        )
+        self._heartbeat_thread.start()
+
         logger.debug("Connected to WebSocket!")
 
     def join_channel(self) -> bool:
@@ -288,10 +305,10 @@ class AddAPixelClient:
             self.ws.send(message)
             self.id += 1
             return self.get_response()
-        except BrokenPipeError as e:
-            logger.error(f"WebSocket connection broken: {e}")
+        except Exception:
+            logger.error(f"WebSocket connection issue.")
             logger.warning("Attempting to reconnect...")
-            self.connect()
+            self.reconnect()
         return None
 
     def _heartbeat_loop(self):
@@ -306,17 +323,8 @@ class AddAPixelClient:
     # Context manager for automatic connection handling
     # Heartbeat every 30 sec while in context
     def __enter__(self):
-        self._stop_heartbeat = threading.Event()
-        self._heartbeat_thread = threading.Thread(
-            target=self._heartbeat_loop, daemon=True
-        )
         self.connect()
-        self._heartbeat_thread.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._stop_heartbeat.set()
-        if self._heartbeat_thread.is_alive():
-            self._heartbeat_thread.join()
-        self.ws.close()
-        logger.debug("WebSocket connection closed.")
+        self.disconnect()

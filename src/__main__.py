@@ -58,21 +58,24 @@ def send_pixels_thread(
     url: str,
 ):
     with AddAPixelClient(url, BOARD_WIDTH, BOARD_HEIGHT) as client:
-        total_pixels = (end_y - start_y) * color_array.shape[1]
-        with tqdm(total=total_pixels) as pbar:
+        total_non_trans_pixels = np.count_nonzero(color_array != TRANSPARENT_COLOR_ID)
+        with tqdm(total=total_non_trans_pixels) as pbar:
+
             for y in range(start_y, end_y):
-                if y < 0 or y >= color_array.shape[0]:
+                write_y = y + start_offset["y"]
+                if write_y < 0 or write_y >= BOARD_HEIGHT:
                     continue
+
                 for x in range(color_array.shape[1]):
-                    if x < 0 or x >= color_array.shape[1]:
+                    write_x = x + start_offset["x"]
+                    if write_x < 0 or write_x >= BOARD_WIDTH:
                         continue
+
                     color_id = color_array[y, x]
                     if color_id != TRANSPARENT_COLOR_ID:
-                        client.write_pixel(
-                            x + start_offset["x"], y + start_offset["y"], color_id
-                        )
+                        client.write_pixel(write_x, write_y, color_id)
                         time.sleep(sleep_per_pixel_s)
-                    pbar.update(1)
+                        pbar.update(1)
                 time.sleep(sleep_per_row_s)
 
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
     start_offset = {"x": 3344, "y": -37}
     start_row = 0
     image_path = "what-u-got.png"  # Replace with your image path
-    n_threads = 20
+    n_threads = 2
     sleep_per_px = 0.1
     sleep_per_row = 1
 
